@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "id": 1,
+    "task": "123",
+    "isDone": false
+  },
+  {
+    "id": 2,
+    "task": "second",
+    "isDone": false
+  },
+  {
+    "id": 3,
+    "task": "123",
+    "isDone": false
+  },
+  {
+    "id": 4,
+    "task": "third",
+    "isDone": false
+  }
+]

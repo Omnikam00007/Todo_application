@@ -12,19 +12,15 @@ let JWT_SECRET = "iamhulk";
 
 function Auth(req,res,next)
 {
-    const token= req.headers.token;
-    console.log(token);
-    
-    
-    const decodeToken = jwt.verify(token,JWT_SECRET);
-    
-    
-    if(decodeToken.username){
+    try{
+        const token= req.headers.token;
+        const decodeToken = jwt.verify(token,JWT_SECRET);
+        if(!decodeToken.username){
+            throw new  Error(`Response status:${decodeToken.username.status}`);
+        }
         next();
-    }else{
-        res.json({
-            msg:"You are not signin"
-        })
+    }catch(error){
+        console.log("You need to first signin"); 
     }
 }
 
@@ -107,11 +103,11 @@ async function deleteTodo(task){
     }
 }
 
-async function updateTodo(task, status){
+async function updateTodo(id, status){
     try{
         let todos = await readFile();
         todos.forEach(todo =>{
-            if(todo.task === task){
+            if(todo.id === id){
                 todo.isDone = status;
             }
         });
@@ -209,8 +205,8 @@ app.post('/addTodo',Auth,async function (req,res){
 });
 
 app.put('/markDone',Auth,async(req,res)=>{
-    if(!req.body.task || !req.body.isDone){
-        req.status(400).send("body is not provided correctly");
+    if(!req.body.id || !req.body.isDone){
+        res.status(400).send("body is not provided correctly");
     }else{
         const message = await updateTodo(req.body.task, req.body.isDone);
         res.send(message);

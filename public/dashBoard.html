@@ -221,7 +221,7 @@ header h1 {
         <div class="todo-container">
             <div class="add-todo">
                 <input type="text" id="new-todo" placeholder="Add a new task...">
-                <button id="add-btn" onclick="addTodo()">Add</button>
+                <button id="add-btn" onclick="addTodo()" >Add</button>
             </div>
             
             <div class="todo-stats">
@@ -250,63 +250,240 @@ header h1 {
     
     <script>
 
-        async function addTodo(){
-            
-            const todo = document.getElementById("new-todo").value;
-            const url = "http://localhost:3000/addTodo";
+       // Update the getTodo function to properly display todos with checkboxes
+async function getTodo() {
+    const todoList = document.getElementById("todo-list");
+    const url = "http://localhost:3000/getTodo";
 
-            try{
-                const response = await fetch(url,{
-                    method:"POST",
-                    headers:{
-                        "Content-Type":"application/json",
-                        token: localStorage.getItem("token")
-                    },
-                    body:JSON.stringify({
-                        task: todo
-                    })
-                });
-                if(!response.ok){
-                    throw new  Error(`Response status:${response.status}`);
-                }
-                console.log("response is ok");
-                const data = await response.json();
-                console.log(data);
-                
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                token: localStorage.getItem("token")
             }
-            catch(error){
-                console.log(error);
-                
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+        
+        console.log("response is ok");
+        const data = await response.json();
+        
+        // Clear existing content if any
+        const emptyState = document.getElementById("empty-state");
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        // If no todos, show empty state
+        if (data.length === 0) {
+            const emptyStateDiv = document.createElement("div");
+            emptyStateDiv.className = "empty-state";
+            emptyStateDiv.id = "empty-state";
+            emptyStateDiv.innerHTML = "<p>No tasks yet. Add a new task to get started!</p>";
+            todoList.appendChild(emptyStateDiv);
+            updateStats(0, 0, 0);
+            return;
+        }
+        
+        // Clear existing todos to prevent duplicates
+        const existingTodos = todoList.querySelectorAll('.todo-item');
+        existingTodos.forEach(item => item.remove());
+        
+        // Create todo items
+        let completedCount = 0;
+        
+        data.forEach((todo) => {
+            const todoItem = document.createElement("div");
+            todoItem.className = todo.completed ? "todo-item completed" : "todo-item";
+            todoItem.dataset.id = todo._id || todo.id; // Store todo ID for future operations
+            
+            // Create checkbox
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "todo-checkbox";
+            checkbox.checked = todo.completed;
+            checkbox.addEventListener("change", () => toggleTodoStatus(todo._id || todo.id, checkbox.checked));
+            
+            // Create todo text
+            const todoText = document.createElement("span");
+            todoText.className = "todo-text";
+            todoText.innerText = todo.task;
+            
+            // Create delete button
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-btn";
+            deleteBtn.innerHTML = "×";
+            deleteBtn.addEventListener("click", () => deleteTodo(todo._id || todo.id));
+            
+            // Append elements to todo item
+            todoItem.appendChild(checkbox);
+            todoItem.appendChild(todoText);
+            todoItem.appendChild(deleteBtn);
+            
+            // Append todo item to list
+            todoList.appendChild(todoItem);
+            
+            // Count completed tasks
+            if (todo.completed) {
+                completedCount++;
+            }
+        });
+        
+        // Update stats
+        updateStats(data.length, completedCount, data.length - completedCount);
+    }
+    catch (error) {
+        console.log(error);
+    }
+}
+
+// Function to toggle todo completion status
+async function toggleTodoStatus(todoId, isCompleted) {
+    const url = "http://localhost:3000/markDone"; // Update this to your actual API endpoint
+    
+    try {
+        const response = await fetch(url, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                token: localStorage.getItem("token")
+            },
+            body: JSON.stringify({
+                id: todoId,
+                isDone: isCompleted
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+        
+        // Update UI to reflect the change
+        const todoItem = document.querySelector(`.todo-item[data-id="${todoId}"]`);
+        if (todoItem) {
+            if (isCompleted) {
+                todoItem.classList.add("completed");
+            } else {
+                todoItem.classList.remove("completed");
             }
         }
+        
+        // Refresh stats
+       // await getTodo();
+    }
+    catch (error) {
+        console.log(error);
+    }
+}
 
-
-        async function getTodo(){
-            
-            const todo = document.getElementById("todo-list");
-            const url = "http://localhost:3000/getTodo";
-
-            try{
-                const response = await fetch(url,{
-                    method:"GET",
-                    headers:{
-                        token: localStorage.getItem("token")
-                    }
-                });
-                if(!response.ok){
-                    throw new  Error(`Response status:${response.status}`);
-                }
-                console.log("response is ok");
-                const data = await response.json();
-                console.log(data);
-            
-            }
-            catch(error){
-                console.log(error);
-                
-            }
+// Function to delete todo
+async function deleteTodo(todoId) {
+    const url = `http://localhost:3000/deleteTodo`; // Update this to your actual API endpoint
+    
+    try {
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                token: localStorage.getItem("token")
+            },
+            body: JSON.stringify({
+                id: todoId
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
         }
-getTodo();
+        
+        // Remove the todo item from the DOM
+        const todoItem = document.querySelector(`.todo-item[data-id="${todoId}"]`);
+        if (todoItem) {
+            todoItem.remove();
+        }
+        
+        // Refresh the todo list to update stats
+        await getTodo();
+    }
+    catch (error) {
+        console.log(error);
+    }
+}
+
+// Update stats display
+function updateStats(total, completed, pending) {
+    document.getElementById("total-count").textContent = total;
+    document.getElementById("completed-count").textContent = completed;
+    document.getElementById("pending-count").textContent = pending;
+}
+
+// Fix the typo in the addTodo function and clear input after adding
+async function addTodo() {
+    const todoInput = document.getElementById("new-todo");
+    const todo = todoInput.value.trim();
+    
+    if (!todo) return; // Don't add empty todos
+    
+    const url = "http://localhost:3000/addTodo";
+    
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                token: localStorage.getItem("token")
+            },
+            body: JSON.stringify({
+                task: todo
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+        await response.json();
+        console.log("Todo added successfully");
+        
+        // Clear the input field
+        todoInput.value = "";
+        
+        // Refresh the todo list
+        await getTodo();
+    }
+    catch (error) {
+        console.log(error);
+    }
+}
+
+// Add event listener for Enter key on the input field
+document.getElementById("new-todo").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        addTodo();
+    }
+});
+
+// Display current date
+function displayCurrentDate() {
+    const dateElement = document.getElementById("current-date");
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const currentDate = new Date().toLocaleDateString(undefined, options);
+    dateElement.textContent = currentDate;
+}
+
+// Initialize the app
+function initApp() {
+    displayCurrentDate();
+    getTodo();
+}
+
+// Fix the typo in 'shown = ture' to 'shown = true'
+let shown = false;
+
+// Initialize the app when the page loads
+window.addEventListener("DOMContentLoaded", initApp);
+        
 
     </script>
 </body>
