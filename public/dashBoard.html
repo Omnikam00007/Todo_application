@@ -239,11 +239,7 @@ header h1 {
                 </div>
             </div>
             <div class="todo-list" id="todo-list">
-                
                 <!-- Todo items will be added here dynamically -->
-                <div class="empty-state" id="empty-state">
-                    <p>No tasks yet. Add a new task to get started!</p>
-                </div>
             </div>
         </div>
     </div>
@@ -267,44 +263,30 @@ async function getTodo() {
             throw new Error(`Response status: ${response.status}`);
         }
         
-        console.log("response is ok");
         const data = await response.json();
         
-        // Clear existing content if any
-        const emptyState = document.getElementById("empty-state");
-        if (emptyState) {
-            emptyState.remove();
-        }
-        
-        // If no todos, show empty state
-        if (data.length === 0) {
-            const emptyStateDiv = document.createElement("div");
-            emptyStateDiv.className = "empty-state";
-            emptyStateDiv.id = "empty-state";
-            emptyStateDiv.innerHTML = "<p>No tasks yet. Add a new task to get started!</p>";
-            todoList.appendChild(emptyStateDiv);
-            updateStats(0, 0, 0);
-            return;
-        }
-        
-        // Clear existing todos to prevent duplicates
-        const existingTodos = todoList.querySelectorAll('.todo-item');
-        existingTodos.forEach(item => item.remove());
-        
+        const emptyList = document.getElementById("todo-list");
+        emptyList.innerHTML = "";
+
+
         // Create todo items
         let completedCount = 0;
-        
-        data.forEach((todo) => {
+        if(data){
+            data.forEach((todo) => {
             const todoItem = document.createElement("div");
-            todoItem.className = todo.completed ? "todo-item completed" : "todo-item";
-            todoItem.dataset.id = todo._id || todo.id; // Store todo ID for future operations
+            todoItem.className = todo.isDone ? "todo-item completed" : "todo-item";
+            todoItem.dataset.id = todo.id; 
             
+            //testing code 
+            console.log(todo.isDone);
+            
+
             // Create checkbox
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
             checkbox.className = "todo-checkbox";
-            checkbox.checked = todo.completed;
-            checkbox.addEventListener("change", () => toggleTodoStatus(todo._id || todo.id, checkbox.checked));
+            checkbox.checked = todo.isDone;
+            checkbox.addEventListener("change", () => toggleTodoStatus(todo.id, checkbox.checked));
             
             // Create todo text
             const todoText = document.createElement("span");
@@ -315,7 +297,7 @@ async function getTodo() {
             const deleteBtn = document.createElement("button");
             deleteBtn.className = "delete-btn";
             deleteBtn.innerHTML = "×";
-            deleteBtn.addEventListener("click", () => deleteTodo(todo._id || todo.id));
+            deleteBtn.addEventListener("click", () => deleteTodo(todo.id));
             
             // Append elements to todo item
             todoItem.appendChild(checkbox);
@@ -326,13 +308,17 @@ async function getTodo() {
             todoList.appendChild(todoItem);
             
             // Count completed tasks
-            if (todo.completed) {
+            if (todo.isDone) {
                 completedCount++;
             }
         });
+        await updateStats(data.length, completedCount, data.length - completedCount);
+    }else{
+
+        await updateStats(0, 0, 0);
+
+    }
         
-        // Update stats
-        updateStats(data.length, completedCount, data.length - completedCount);
     }
     catch (error) {
         console.log(error);
@@ -371,7 +357,7 @@ async function toggleTodoStatus(todoId, isCompleted) {
         }
         
         // Refresh stats
-       // await getTodo();
+       await getTodo();
     }
     catch (error) {
         console.log(error);

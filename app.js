@@ -53,7 +53,7 @@ async function getTodos(){
     try{
         const todos = await readFile();
         if(todos.length === 0){
-            return "You currently dont have any todos.";
+            return false;
         }else{
             return todos;
         }
@@ -88,10 +88,10 @@ function resetTodoId(todos){
     return todos;
 }
 
-async function deleteTodo(task){
+async function deleteTodo(id){
     try{
         let todos = await readFile();
-        todos = todos.filter(todo => todo.task !== task);
+        todos = todos.filter(todo => todo.id !== id);
         if(todos.length>0){
             todos= resetTodoId(todos);
         }
@@ -111,7 +111,8 @@ async function updateTodo(id, status){
                 todo.isDone = status;
             }
         });
-        await writeFile(todos);
+        const response =await writeFile(todos);
+        console.log(response);
         return "Todo marked done successfully";
     }catch(error){
         console.log(error);
@@ -205,23 +206,27 @@ app.post('/addTodo',Auth,async function (req,res){
 });
 
 app.put('/markDone',Auth,async(req,res)=>{
-    if(!req.body.id || !req.body.isDone){
+    if(!req.body.id && !req.body.isDone){
         res.status(400).send("body is not provided correctly");
     }else{
-        const message = await updateTodo(req.body.task, req.body.isDone);
+        const message = await updateTodo(req.body.id, req.body.isDone);
         res.send(message);
     }
 });
 
 app.get('/getTodo',Auth,async function(req,res){
     const todos = await getTodos();
-    console.log(todos);
-    res.json(todos);
+    if(todos){
+        res.json(todos);
+    }else{
+        res.status(200).send(todos);
+    }
+    
     
 })
 
 app.delete('/deleteTodo',Auth,async(req,res)=>{
-    const deleteResponse = await deleteTodo(req.body.task);
+    const deleteResponse = await deleteTodo(req.body.id);
     res.send(deleteResponse);
 })
 
