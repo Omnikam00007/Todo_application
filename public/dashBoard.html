@@ -182,6 +182,19 @@ header h1 {
     color: #999;
 }
 
+#logoutButton{
+    padding: 12px 20px;
+    background-color: #000;
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    border-radius: 4px;
+    margin-left: 800px;
+}
+
 @media (max-width: 600px) {
     .dashboard {
         padding: 15px;
@@ -213,6 +226,7 @@ header h1 {
 </head>
 <body>
     <div class="dashboard">
+        <button id="logoutButton" onclick="Logout()">Logout</button>
         <header>
             <h1>Todo Dashboard</h1>
             <p class="date" id="current-date"></p>
@@ -221,7 +235,7 @@ header h1 {
         <div class="todo-container">
             <div class="add-todo">
                 <input type="text" id="new-todo" placeholder="Add a new task...">
-                <button id="add-btn" onclick="addTodo()" >Add</button>
+                <button id="add-btn" onclick="addTodo()">Add</button>
             </div>
             
             <div class="todo-stats">
@@ -441,6 +455,10 @@ async function addTodo() {
     catch (error) {
         console.log(error);
     }
+}
+
+function Logout(){
+    localStorage.removeItem("token");
 }
 
 // Add event listener for Enter key on the input field
