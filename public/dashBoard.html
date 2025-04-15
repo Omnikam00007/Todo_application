@@ -289,12 +289,12 @@ async function getTodo() {
             data.forEach((todo) => {
             const todoItem = document.createElement("div");
             todoItem.className = todo.isDone ? "todo-item completed" : "todo-item";
-            todoItem.dataset.id = todo.id; 
-            
-            //testing code 
-            console.log(todo.isDone);
-            
+            todoItem.dataset.id = todo._id; 
 
+            //testing code 
+            console.log(todo._id);
+            
+            
             // Create checkbox
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";

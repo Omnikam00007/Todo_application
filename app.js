@@ -4,9 +4,12 @@ const { log } = require('console');
 const app = express();
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const mongoose = require("mongoose");
+const { userModel, todoModel} = require("./db");
 
-let user = [];
-let filePath = "todos.json";
+mongoose.connect("mongodb+srv://omnikam33:57J2Whx6ATIE18ZD@cluster0.tk0mobi.mongodb.net/todo-database-app");
+
+
 let JWT_SECRET = "iamhulk";
 
 
@@ -15,44 +18,29 @@ function Auth(req,res,next)
     try{
         const token= req.headers.token;
         const decodeToken = jwt.verify(token,JWT_SECRET);
-        if(!decodeToken.username){
-            throw new  Error(`Response status:${decodeToken.username.status}`);
+        
+        if(!decodeToken.id){
+            throw new  Error(`Response status:${decodeToken.id.status}`);
         }
+        req.ObjectId = decodeToken.id;
         next();
     }catch(error){
         console.log("You need to first signin"); 
     }
 }
 
-function readFile(){
-    return new Promise((resolve,reject)=>{
-        fs.readFile(filePath,'utf-8',(err,data)=>{
-            if(err){
-                reject("Error reading the todos file.");
-            }else{
-                data = JSON.parse(data);
-                resolve(data);
-            }
-        });
-    });
-}
 
-function writeFile(data){
-    return new Promise((resolve,reject)=>{
-        fs.writeFile(filePath,JSON.stringify(data, null, 2),(err)=>{
-            if(err){
-                reject("error adding the todo.");
-            }else{
-                resolve("successfully added todo.");
-            }
-        });
-    });
-}
 
-async function getTodos(){
+
+async function getTodos(ObjectId){
     try{
-        const todos = await readFile();
-        if(todos.length === 0){
+        
+        const todos = await todoModel.find({
+            userId: ObjectId
+        });
+     
+        
+        if(todos == null){
             return false;
         }else{
             return todos;
@@ -63,18 +51,14 @@ async function getTodos(){
     }
 }
 
-async function addTodo(task){
+async function addTodo(task,ObjectId){
     try{
-        let todos = await readFile();
-        const newTodo = {
-            "id": todos.length + 1,
-            "task": task,
-            "isDone": false
-        }
-        todos.push(newTodo);
-        const message = await writeFile(todos);
-        console.log(message);
-        return message;
+        let todos = await todoModel.create({
+            task: task,
+            isDone: false,
+            userId: ObjectId
+        });
+        return "todo added successfully";
     }catch(error){
         console.log(error);
         return error;
@@ -103,16 +87,13 @@ async function deleteTodo(id){
     }
 }
 
-async function updateTodo(id, status){
+async function updateTodo(ObjectId,id, status){
     try{
-        let todos = await readFile();
-        todos.forEach(todo =>{
-            if(todo.id === id){
-                todo.isDone = status;
-            }
+        let todos = await todoModel.updateOne({
+            _id: id,
+            userId: ObjectId,
+            isDone: status
         });
-        const response =await writeFile(todos);
-        console.log(response);
         return "Todo marked done successfully";
     }catch(error){
         console.log(error);
@@ -134,7 +115,7 @@ app.get('/signin',function(req,res){
 
 })
 
-app.post('/signup',function(req,res){
+app.post('/signup',async function(req,res){
 
     const username = req.body.username;
     const password = req.body.password;
@@ -145,19 +126,26 @@ app.post('/signup',function(req,res){
     }
    
     
-   user.push({
-    username: username,
+  try{ 
+    const response = await userModel.create({
+    email: username,
     password: password
-   })
-    
-    res.send({
-        msg: "user signedup successfully"
-    });
+   })   
+   if(!response){
+    return res.status(409).send("Unable to signup");
+   }
+   res.send({
+    msg: "user signedup successfully"
+});
 
+ }catch(error){
+    console.log(error);
+ }
+    
 });
 
 
-app.post('/signin',function(req,res){
+app.post('/signin',async function(req,res){
     const username = req.body.username;
     const password = req.body.password;
 
@@ -166,23 +154,23 @@ app.post('/signin',function(req,res){
     if(!username || !password){
         return res.status(400).send({ msg: "Username and password are required" });
     }
-    userFound = user.find(u => u.username === username && u.password === password);
+    userFound = await userModel.findOne({
+        email: username,
+        password: password
+    })
+
+    console.log(userFound);
+    
 
     if(userFound){
         const token = jwt.sign({
-            username: userFound.username
+            id: userFound._id
         },JWT_SECRET);
-
-        user.find((u)=>{
-            if(u.username==userFound.username){
-                u.token=token;
-                u.isLogin=true;
                 res.send({
                     token: token,
                     msg:"user successfully signedin"
                 });
-            }
-        });
+            
     }
     else{
         return res.status(401).send({ msg: "Invalid username or password" });
@@ -195,10 +183,10 @@ app.get('/',function(req,res){
 })
 
 app.post('/addTodo',Auth,async function (req,res){
-    if(!req.body.task){
+    if(!req.body.task || !req.ObjectId){
         res.status(400).send("task is not provided to add");
     }else{
-        const message = await addTodo(req.body.task);
+        const message = await addTodo(req.body.task,req.ObjectId);
         res.json({
             message : message
         });
@@ -206,16 +194,24 @@ app.post('/addTodo',Auth,async function (req,res){
 });
 
 app.put('/markDone',Auth,async(req,res)=>{
-    if(!req.body.id && !req.body.isDone){
+    console.log(req.ObjectId);
+    console.log(req.body.todoId);
+    console.log(req.body.isDone);
+    
+    
+    
+
+    if(!req.ObjectId && !req.body.todoId && !req.body.isDone){
         res.status(400).send("body is not provided correctly");
     }else{
-        const message = await updateTodo(req.body.id, req.body.isDone);
+        const message = await updateTodo(req.ObjectId,req.body.id, req.body.isDone);
         res.send(message);
     }
 });
 
 app.get('/getTodo',Auth,async function(req,res){
-    const todos = await getTodos();
+
+    const todos = await getTodos(req.ObjectId);
     if(todos){
         res.json(todos);
     }else{
