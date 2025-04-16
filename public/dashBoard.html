@@ -291,16 +291,12 @@ async function getTodo() {
             todoItem.className = todo.isDone ? "todo-item completed" : "todo-item";
             todoItem.dataset.id = todo._id; 
 
-            //testing code 
-            console.log(todo._id);
-            
-            
             // Create checkbox
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
             checkbox.className = "todo-checkbox";
             checkbox.checked = todo.isDone;
-            checkbox.addEventListener("change", () => toggleTodoStatus(todo.id, checkbox.checked));
+            checkbox.addEventListener("change", () => toggleTodoStatus(todo._id, checkbox.checked));
             
             // Create todo text
             const todoText = document.createElement("span");
@@ -311,7 +307,7 @@ async function getTodo() {
             const deleteBtn = document.createElement("button");
             deleteBtn.className = "delete-btn";
             deleteBtn.innerHTML = "×";
-            deleteBtn.addEventListener("click", () => deleteTodo(todo.id));
+            deleteBtn.addEventListener("click", () => deleteTodo(todo._id));
             
             // Append elements to todo item
             todoItem.appendChild(checkbox);
@@ -341,6 +337,7 @@ async function getTodo() {
 
 // Function to toggle todo completion status
 async function toggleTodoStatus(todoId, isCompleted) {
+    
     const url = "http://localhost:3000/markDone"; // Update this to your actual API endpoint
     
     try {
@@ -371,7 +368,7 @@ async function toggleTodoStatus(todoId, isCompleted) {
         }
         
         // Refresh stats
-       await getTodo();
+       setTimeout(5000,await getTodo());
     }
     catch (error) {
         console.log(error);

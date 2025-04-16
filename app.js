@@ -65,21 +65,9 @@ async function addTodo(task,ObjectId){
     }
 }
 
-function resetTodoId(todos){
-    for(let i=0;i<todos.length;i++){
-        todos[i].id = i + 1;
-    }
-    return todos;
-}
-
 async function deleteTodo(id){
     try{
-        let todos = await readFile();
-        todos = todos.filter(todo => todo.id !== id);
-        if(todos.length>0){
-            todos= resetTodoId(todos);
-        }
-        await writeFile(todos);
+        await todoModel.findByIdAndDelete(id)
         return "Todo deleted successfully";
     }catch(error){
         console.log(error);
@@ -87,11 +75,9 @@ async function deleteTodo(id){
     }
 }
 
-async function updateTodo(ObjectId,id, status){
+async function updateTodo(id, status){
     try{
-        let todos = await todoModel.updateOne({
-            _id: id,
-            userId: ObjectId,
+        await todoModel.findById(id).updateOne({
             isDone: status
         });
         return "Todo marked done successfully";
@@ -159,9 +145,6 @@ app.post('/signin',async function(req,res){
         password: password
     })
 
-    console.log(userFound);
-    
-
     if(userFound){
         const token = jwt.sign({
             id: userFound._id
@@ -194,17 +177,11 @@ app.post('/addTodo',Auth,async function (req,res){
 });
 
 app.put('/markDone',Auth,async(req,res)=>{
-    console.log(req.ObjectId);
-    console.log(req.body.todoId);
-    console.log(req.body.isDone);
-    
-    
-    
-
-    if(!req.ObjectId && !req.body.todoId && !req.body.isDone){
+   
+    if( !req.body.id && !req.body.isDone){
         res.status(400).send("body is not provided correctly");
     }else{
-        const message = await updateTodo(req.ObjectId,req.body.id, req.body.isDone);
+        const message = await updateTodo(req.body.id, req.body.isDone);
         res.send(message);
     }
 });
