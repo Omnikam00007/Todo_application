@@ -1,36 +1,12 @@
-const fs = require("fs");
 const express = require('express');
-const { log } = require('console');
 const app = express();
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const { userModel, todoModel} = require("./db");
+const {Auth,JWT_SECRET} = require("./Auth");
 
 mongoose.connect("mongodb+srv://omnikam33:57J2Whx6ATIE18ZD@cluster0.tk0mobi.mongodb.net/todo-database-app");
-
-
-let JWT_SECRET = "iamhulk";
-
-
-function Auth(req,res,next)
-{
-    try{
-        const token= req.headers.token;
-        const decodeToken = jwt.verify(token,JWT_SECRET);
-        
-        if(!decodeToken.id){
-            throw new  Error(`Response status:${decodeToken.id.status}`);
-        }
-        req.ObjectId = decodeToken.id;
-        next();
-    }catch(error){
-        console.log("You need to first signin"); 
-    }
-}
-
-
-
 
 async function getTodos(ObjectId){
     try{
